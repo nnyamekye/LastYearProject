@@ -1,0 +1,25 @@
+;**********************************************************************
+	ORG     0x000       ; processor reset vector
+
+	nop			  		; nop required for icd
+  	goto    main        ; go to beginning of program
+
+	ORG     0x004       ; interrupt vector location
+
+	movwf   w_temp      ; save off current W register contents
+	movf	STATUS,w    ; move status register into W register
+	movwf	status_temp       ; save off contents of STATUS register
+	movf	PCLATH,w	; move pclath register into w register
+	movwf	pclath_temp	; save off contents of PCLATH register
+
+; isr code can go here or be located as a call subroutine elsewhere
+
+	movf	pclath_temp,w	  ; retrieve copy of PCLATH register
+	movwf	PCLATH		  ; restore pre-isr PCLATH register contents
+	movf    status_temp,w     ; retrieve copy of STATUS register
+	movwf	STATUS            ; restore pre-isr STATUS register contents
+	swapf   w_temp,f
+	swapf   w_temp,w          ; restore pre-isr W register contents
+	retfie                    ; return from interrupt
+
+main

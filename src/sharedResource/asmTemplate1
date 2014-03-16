@@ -1,0 +1,21 @@
+;**********************************************************************
+;                                                                     *
+;    Files Required: P16F877A.INC                                     *
+;                                                                     *
+;**********************************************************************
+;                                                                     *
+;    File written by the C Translater                                 *
+;                                                                     *
+;**********************************************************************
+
+	list		p=16f877A	; list directive to define processor
+	#include	<p16f877A.inc>	; processor specific variable definitions
+	
+	__CONFIG _CP_OFF & _WDT_OFF & _BODEN_OFF & _PWRTE_ON & _RC_OSC & _WRT_OFF & _LVP_ON & _CPD_OFF
+
+
+;***** VARIABLE DEFINITIONS
+w_temp		EQU	0x7D		; variable used for context saving 
+status_temp	EQU	0x7E		; variable used for context saving
+pclath_temp	EQU	0x7F		; variable used for context saving			
+
