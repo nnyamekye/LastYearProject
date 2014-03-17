@@ -35,7 +35,7 @@ public class magicFunctions {
 			}
 			
 			stLines = fileContent.split("\\n");
-			
+			br.close();
 		} catch (FileNotFoundException e) {
 			// TODO: File couldn't be found
 		}
@@ -71,7 +71,7 @@ public class magicFunctions {
 			elements = condition.split("\\b<\\b");
 			operator = 3;
 		}
-		//TODO<=
+		//<=
 		else if (condition.matches(".*\\b<=\\b.*")){
 			elements = condition.split("\\b<=\\b");
 			operator = 4;
@@ -86,7 +86,6 @@ public class magicFunctions {
 			elements = condition.split("\\b==\\b");
 			operator = 6;
 		}
-		System.out.println(Inc_dec.replaceAll("[^\\w]+", ""));
 		if (elements[0].equals(Inc_dec.replaceAll("[^\\w]+", ""))){
 			a = elements[0]; 
 			b = elements[1];

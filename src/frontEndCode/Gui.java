@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -29,6 +31,7 @@ import sharedResource.*;
 
 public class Gui extends JFrame {
 	
+	private static final long serialVersionUID = 1L;
 	JDialog dialogEdit = new JDialog();
 	JScrollPane scrollPanelC = new JScrollPane();
 	JScrollPane scrollPanelAsm = new JScrollPane();
@@ -126,6 +129,8 @@ public class Gui extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				Enumeration<String> identifiers = intVar_dict.keys();
+				Deque<String> stack = new ArrayDeque<String>();
+
 				
 				AsmTemplates at = new AsmTemplates();
 			
@@ -145,36 +150,50 @@ public class Gui extends JFrame {
 					switch(i){ 
 						case 1:
 							for (String strline : txtAreaC.getText().split("\\n+")){	
-								strline = strline.replaceFirst("int\\s+main.*\\{", "<main<");
+								
+								
+								pattern = Pattern.compile("^\\s*int\\s+main.*\\{.*");
+								matcher = pattern.matcher(strline);
+								
+								if(matcher.matches()){
+									strline = strline.replaceFirst("int\\s+main.*\\{", "<main<");
+									stack.push("main");
+								}
+								
 								// For Statement
 								pattern = Pattern.compile("^\\s*for.*\\{.*");
 								matcher = pattern.matcher(strline);
 								
-								if(matcher.matches())
+								if(matcher.matches()){
 									strline = strline.replaceAll("^\\s*for.*\\{.*", matcher.group()+"<for<"+for_counter++  + "<");
-									
+									stack.push("for");
+								}
 								// if Statement
 								pattern = Pattern.compile("^\\s*if.*\\{.*");
 								matcher = pattern.matcher(strline);
 								
-								if(matcher.matches())
+								if(matcher.matches()){
 									strline = strline.replaceAll("^\\s*if.*\\{.*", matcher.group()+"<if<"+if_counter++  + "<");
-									
+									stack.push("if");
+								}
 								
+								// End bracket
 								pattern = Pattern.compile("^\\s*.*\\}.*");
 								matcher = pattern.matcher(strline);
 								
 								if(matcher.matches()){
-									if(for_counter > 1 && for_counter > if_counter){
+									String stack_entity = stack.pop();
+									
+									if (stack_entity.equals("for")){
 										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">for>"+ --for_counter + ">");
-										forStatement_dict.put("for"+ for_counter, "");
-									}else if(if_counter > 1){
+									}else if(stack_entity.equals("if")){
 										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">if>"+ --if_counter + ">");
-										forStatement_dict.put("for"+ for_counter, "");
-									}else {
+									}else if(stack_entity.equals("main")) {
 										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">main>");
 										for_counter = 1;
+										if_counter = 1;
 									}
+									stack_entity="";
 								}
 								
 								// int Keyword
