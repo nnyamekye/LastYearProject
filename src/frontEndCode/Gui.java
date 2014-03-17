@@ -182,18 +182,17 @@ public class Gui extends JFrame {
 								matcher = pattern.matcher(strline);
 								
 								if(matcher.matches()){
-									String stack_entity = stack.pop();
 									
-									if (stack_entity.equals("for")){
+									if (stack.peek().equals("for")){
 										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">for>"+ --for_counter + ">");
-									}else if(stack_entity.equals("if")){
+									}else if(stack.peek().equals("if")){
 										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">if>"+ --if_counter + ">");
-									}else if(stack_entity.equals("main")) {
+									}else if(stack.peek().equals("main")) {
 										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">main>");
 										for_counter = 1;
 										if_counter = 1;
 									}
-									stack_entity="";
+									stack.poll();
 								}
 								
 								// int Keyword
