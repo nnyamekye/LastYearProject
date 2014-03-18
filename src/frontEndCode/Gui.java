@@ -71,6 +71,7 @@ public class Gui extends JFrame {
 	String sourceCode = "";
 	String intStatement = "";
 	String forStatement = "";
+	String ifStatement = "";
 	
 	Gui()
 	{
@@ -136,6 +137,7 @@ public class Gui extends JFrame {
 			
 				int for_counter = 1;
 				int if_counter = 1;
+				
 				txtAreaAsm.setText("");	
 				sourceCode="";
 				
@@ -150,8 +152,8 @@ public class Gui extends JFrame {
 					switch(i){ 
 						case 1:
 							for (String strline : txtAreaC.getText().split("\\n+")){	
-								
-								
+
+								// main 
 								pattern = Pattern.compile("^\\s*int\\s+main.*\\{.*");
 								matcher = pattern.matcher(strline);
 								
@@ -216,8 +218,8 @@ public class Gui extends JFrame {
 									if(!(strline.contains("#include")))
 										sourceCode = sourceCode.concat(strline+"\n");
 								}
-								
 							}
+							
 							System.out.println(sourceCode);
 							break;
 					
@@ -228,6 +230,7 @@ public class Gui extends JFrame {
 								for(String token : tokens){ 
 									count = 0;
 									for (String keyword : keywords) {
+										
 										if (token.equals(keyword)){
 											instate = true;
 											currentKeyHandler = count;
@@ -245,7 +248,8 @@ public class Gui extends JFrame {
 												keyword_for(token);
 												break;
 											case 2:
-												currentKeyHandler = 0;
+												keyword_if(token);
+												//currentKeyHandler = 0;
 												break;
 										}
 									}
@@ -298,6 +302,7 @@ public class Gui extends JFrame {
  								
  								txtAreaAsm.append(at.intitialise_int(identifier, value));
 							}
+ 							
  							// MAIN function Scan and translation 
  								for(String strLine: sourceCode.split("[\n]")){
  									if(!(strLine.matches("<main<"))){
@@ -308,6 +313,12 @@ public class Gui extends JFrame {
  	 										String forNr = strLine.replaceAll(".*}", "");
  	 										forNr = forNr.replaceAll(">", "<");
  	 										txtAreaAsm.append(mf.getEndStatement(forStatement_dict.get(forNr),forNr) + "\n");	
+ 										}else if(strLine.matches(".*<if<\\d+<")){
+ 											String forNr = strLine.replaceAll(".*\\{", ""); 
+ 											txtAreaAsm.append(mf.getStatement(forNr));
+ 										
+ 										}else if(strLine.matches(".*}>if>\\d+>")){
+ 										//txtAreaAsm.append("ifStatementClose");
  										}else {
  											strLine = strLine.trim();
  											strLine = strLine.replaceAll("}>main>", "END");
@@ -376,6 +387,21 @@ public class Gui extends JFrame {
 					instate = false;
 				}
 				
+			}
+	
+			private void keyword_if(String token){
+				ifStatement += token;
+				
+				if(token.matches(".*\\{<if<.+<")){
+					ifStatement = ifStatement.replaceAll("if\\(", "");
+					String ifNr = ifStatement.replaceAll(".*\\{","");					
+					
+					ifStatement = ifStatement.replaceAll("\\).*<if<.*", "");
+					mf.storeOperationType(ifNr, ifStatement);
+					
+					ifStatement ="";
+					instate = false;
+				}
 			}
 		});
 	
@@ -534,8 +560,92 @@ public class Gui extends JFrame {
 			}
 		});
 	}
+
+	public static void main (String args[]){
+		new Gui(); 
+	}
 	
-	// Methods
+	
+	private void openButtenEvent(String fileType) {
+		//TODO Clean up this method
+		
+		FileNameExtensionFilter filter = new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
+		fc.setFileFilter(filter);
+		//TODO For testing so remove after !!!//////////////////////////////////////////////
+		fc.setCurrentDirectory( new File("/Users/norisnyamekye/Desktop/Uni Project/test"));
+		////////////////////////////////////////////////////////////////////////////////////
+		fc.showOpenDialog(null);
+			
+		try {
+				
+			if(!(fc.getSelectedFile()==null)){
+				if (fileType == Constants.C){
+					txtAreaC.setText("");
+					btnToC.setEnabled(false);
+					btnToAsm.setEnabled(true);
+					btnOpenAsm.setEnabled(false);
+				}
+				else{
+					txtAreaAsm.setText("");
+					btnToAsm.setEnabled(false);
+					btnToC.setEnabled(true);
+					btnOpenC.setEnabled(false);
+				}
+				
+				String[] strLines = mf.readFile(fc.getSelectedFile());
+				
+				for(String strLine : strLines){
+
+					if(fileType.equals(Constants.C))
+						txtAreaC.append(strLine + "\n");
+					else
+						txtAreaAsm.append(strLine + "\n");
+				}
+				
+			}
+			
+		}catch (Exception ex){//Catch exception if any
+				ex.printStackTrace();
+		}
+	}
+	
+	private void saveButtonEvent(String fileType){
+		// Improve // Replace a existen file and etc.
+			
+		FileNameExtensionFilter filter = new FileNameExtensionFilter(Constants.ASM_full  + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
+		FileNameExtensionFilter filter2 = new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
+			
+		if(fileType.equals(Constants.ASM))
+			fc.setFileFilter(filter);
+		else{
+			fc.setFileFilter(filter2);
+		}
+		int status = fc.showSaveDialog(null);
+		
+		try	{
+			File new_file = null;
+			if(!fc.getSelectedFile().getAbsoluteFile().toString().toLowerCase().endsWith("."+ fileType))
+			{
+			    new_file = new File(fc.getSelectedFile().getAbsoluteFile().toString() + "." + fileType);
+			}
+			
+			if (status == JFileChooser.APPROVE_OPTION) {
+				OutputStream out = new FileOutputStream(new_file);
+				if (fileType.equals(Constants.C)){
+					out.write(txtAreaC.getText().getBytes());	
+				}
+				else {
+					out.write(txtAreaAsm.getText().getBytes());
+				}
+				out.close();
+				
+			} 
+				
+		}catch (Exception ex){//Catch exception if any
+			ex.printStackTrace();
+		}
+	}
+
 	void initialise()
 	{	
 		setTitle("C Translator");
@@ -634,83 +744,4 @@ public class Gui extends JFrame {
 	        setVisible(true);
 	}
 
-	private void openButtenEvent(String fileType) {
-		//TODO Clean up this method
-		
-		FileNameExtensionFilter filter = new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
-		fc.setFileFilter(filter);
-		//TODO For testing so remove after !!!//////////////////////////////////////////////
-		fc.setCurrentDirectory( new File("/Users/norisnyamekye/Desktop/Uni Project/test"));
-		////////////////////////////////////////////////////////////////////////////////////
-		fc.showOpenDialog(null);
-			
-		try {
-				
-			if(!(fc.getSelectedFile()==null)){
-				if (fileType == Constants.C){
-					txtAreaC.setText("");
-					btnToC.setEnabled(false);
-					btnToAsm.setEnabled(true);
-					btnOpenAsm.setEnabled(false);
-				}
-				else{
-					txtAreaAsm.setText("");
-					btnToAsm.setEnabled(false);
-					btnToC.setEnabled(true);
-					btnOpenC.setEnabled(false);
-				}
-				
-				String[] strLines = mf.readFile(fc.getSelectedFile());
-				
-				for(String strLine : strLines){
-
-					if(fileType.equals(Constants.C))
-						txtAreaC.append(strLine + "\n");
-					else
-						txtAreaAsm.append(strLine + "\n");
-				}
-				
-			}
-			
-		}catch (Exception ex){//Catch exception if any
-				ex.printStackTrace();
-		}
-	}
-	
-	private void saveButtonEvent(String fileType){
-		// Improve // Replace a existen file and etc.
-			
-		FileNameExtensionFilter filter = new FileNameExtensionFilter(Constants.ASM_full  + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
-		FileNameExtensionFilter filter2 = new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
-			
-		if(fileType.equals(Constants.ASM))
-			fc.setFileFilter(filter);
-		else{
-			fc.setFileFilter(filter2);
-		}
-		int status = fc.showSaveDialog(null);
-		
-		try	{
-			File new_file = null;
-			if(!fc.getSelectedFile().getAbsoluteFile().toString().toLowerCase().endsWith("."+ fileType))
-			{
-			    new_file = new File(fc.getSelectedFile().getAbsoluteFile().toString() + "." + fileType);
-			}
-			
-			if (status == JFileChooser.APPROVE_OPTION) {
-				OutputStream out = new FileOutputStream(new_file);
-				if (fileType.equals(Constants.C)){
-					out.write(txtAreaC.getText().getBytes());	
-				}
-				else {
-					out.write(txtAreaAsm.getText().getBytes());
-				}
-				out.close();
-				
-			} 
-				
-		}catch (Exception ex){//Catch exception if any
-			ex.printStackTrace();
-		}
-	}
 }

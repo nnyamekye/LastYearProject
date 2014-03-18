@@ -13,7 +13,7 @@ import java.util.Hashtable;
 public class magicFunctions {
 
 	String[] elements;
-	Dictionary<String, String> conditionStatement_dict = new Hashtable<String, String>();
+	Dictionary<String, String> conditionStatement_dict = new Hashtable<String, String>(); // holds conditions e.g x<y
 	Dictionary<String, String> conditions_dict = new Hashtable<String, String>();
 	
 	public magicFunctions() {}
@@ -47,12 +47,12 @@ public class magicFunctions {
 		
 	}
 	
-	String getStatement(String conditionStatement, String Inc_dec){
+	String getStatement(String operationType, String Inc_dec){
 		AsmTemplates at = new AsmTemplates();
 		
 		
-		String condition = conditionStatement_dict.get(conditionStatement);
-		conditions_dict.put(conditionStatement,condition.replaceAll("\\w+", ""));
+		String condition = conditionStatement_dict.get(operationType);
+		conditions_dict.put(operationType,condition.replaceAll("\\w+", ""));
 		String a = ""; 
 		String b = "";
 		int operator = 0;
@@ -104,37 +104,49 @@ public class magicFunctions {
 	}
 	
 	String getStatement(String operationType){
-		String condition = conditionStatement_dict.get(operationType);
-		String code ="";
+		AsmTemplates at = new AsmTemplates();
 		
+		String condition = conditionStatement_dict.get(operationType);
+		String a = ""; 
+		String b = "";
+		int operator = 0;
 		//>
 		if (condition.matches(".*\\b>\\b.*")){
-			elements = condition.split("\\b>\\b");	
+			elements = condition.split("\\b>\\b");
+			operator = 1;
 		}
 		//>=
-		if (condition.matches(".*\\b>=\\b.*")){
+		else if (condition.matches(".*\\b>=\\b.*")){
 			elements = condition.split("\\b>=\\b");
+			operator = 2;
 		}
 		//<
-		if (condition.matches(".*\\b<\\b.*")){
+		else if (condition.matches(".*\\b<\\b.*")){
 			elements = condition.split("\\b<\\b");
+			operator = 3;
 		}
 		//<=
-		if (condition.matches(".*\\b<=\\b.*")){
+		else if (condition.matches(".*\\b<=\\b.*")){
 			elements = condition.split("\\b<=\\b");
+			operator = 4;
 		}
 		//!=
-		if (condition.matches(".*\\b!=\\b.*")){
+		else if (condition.matches(".*\\b!=\\b.*")){
 			elements = condition.split("\\b!=\\b");
+			operator = 5;
 		}
 		//==
-		if (condition.matches(".*\\b==\\b.*")){
-			elements = condition.split("\\b>\\b");
+		else if (condition.matches(".*\\b==\\b.*")){
+			elements = condition.split("\\b==\\b");
+			operator = 6;
 		}
-		
-		
-	return code;
+
+		a = elements[0]; 
+		b = elements[1];
+	
+		return at.writeIfStatement(a, b, operator);
 	}
+		
 }
 	
 	

@@ -145,4 +145,10 @@ public class AsmTemplates extends magicFunctions{
 				+ "for_end_"+ ForEndCount++; 
 	
 	}
+
+	public String writeIfStatement(String a, String b, int operator) {
+		
+		
+		return "Hello World a="+a +" b="+b ;
+	}
 }
