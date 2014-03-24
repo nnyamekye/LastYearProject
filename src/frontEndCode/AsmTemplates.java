@@ -109,7 +109,8 @@ public class AsmTemplates extends magicFunctions{
 			}
 					
 			code +=	"\nsublw\td'255'\n"
-					+ "addlw\td'1'\n";
+					+ "addlw\td'1'\n"
+					+ "\nbtfss\tSTATUS,Z\n";
 			
 			if (val1.trim().matches("\\d+")){
 				code += "\naddlw\td'"+ val1 +"'";
@@ -117,13 +118,12 @@ public class AsmTemplates extends magicFunctions{
 				code += "\naddwf\t"+ val1 + ",0";
 			}	
 			
-			code += "\nbtfss\tSTATUS,Z"
-					+ "\nbtfsc\tSTATUS,C"
+			code += "\nbtfsc\tSTATUS,C"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";			
 			break;
 		case 4:
-			//<= 
+			//<= done
 			code= 	"\nfor_start_"+ forStartCount;
 			
 			if (val2.trim().matches("\\d+")){
@@ -144,7 +144,7 @@ public class AsmTemplates extends magicFunctions{
 					+ "\n";			
 			break;
 		case 5:
-			//!= 
+			//!= done
 			code= 	"\nfor_start_"+ forStartCount;
 			
 			if (val1.trim().matches("\\d+")){
@@ -157,14 +157,14 @@ public class AsmTemplates extends magicFunctions{
 			if (val2.trim().matches("\\d+")){
 				code += "\nsublw\td'"+ val2 +"'";
 			}else{
-				code += "'\nsubwf\t" + val2 + ",0";
+				code += "\nsubwf\t" + val2 + ",0";
 			}
 			code += "\nbtfsc\tSTATUS,Z"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";				
 			break;
 		case 6:
-			//==
+			//== done
 			code= 	"\nfor_start_"+ forStartCount;
 			if (val1.trim().matches("\\d+")){
 				code += "\nmovlw\td'"+ val1 +"'";
@@ -176,7 +176,7 @@ public class AsmTemplates extends magicFunctions{
 			if (val2.trim().matches("\\d+")){
 				code += "\nsublw\td'"+ val2 +"'";
 			}else{
-						code += "'\nsubwf\t" + val2 + ",0";
+						code += "\nsubwf\t" + val2 + ",0";
 			}		
 			code += "\nbtfss\tSTATUS,Z"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
@@ -195,10 +195,7 @@ public class AsmTemplates extends magicFunctions{
 		}else if(inc_dec.contains("--")) {
 			code = "decf\t" + inc_dec.replaceAll("[^\\w]+", "") + ",1\n" ;
 		}
-		if(operation.equals("<=")){
-			code +="addlw\td'1'\n"
-					+ "btfss\tSTATUS,C\n";
-		}
+
 		if(operation.equals(">=")){
 			code +="addlw\td'1'\n"
 					+ "btfss\tSTATUS,Z\n";
