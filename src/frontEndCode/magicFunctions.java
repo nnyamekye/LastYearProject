@@ -86,14 +86,18 @@ public class magicFunctions {
 			elements = condition.split("\\b==\\b");
 			operator = 6;
 		}
-		if (elements[0].equals(Inc_dec.replaceAll("[^\\w]+", ""))){
-			a = elements[0]; 
-			b = elements[1];
+		a = elements[0]; 
+		b = elements[1];
+
+		if(a.trim().matches("\\d+")){
+			if(Integer.parseInt(a.trim()) > 255)
+				a = "255";
 		}
-		else if(elements[1].equals(Inc_dec.replaceAll("[^\\w]+", ""))){
-			a = elements[1]; 
-			b = elements[0];
+		else if(b.trim().matches("\\d+")){
+			if(Integer.parseInt(b.trim()) > 255)
+				b = "255";
 		}
+			
 		
 	return at.writeForStatement(a, b, operator);
 	}

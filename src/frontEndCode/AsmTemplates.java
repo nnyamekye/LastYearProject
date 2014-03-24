@@ -49,16 +49,27 @@ public class AsmTemplates extends magicFunctions{
 		return statement;
 	}
 	
-	public String writeForStatement(String i, String k, int operator){
+	public String writeForStatement(String val1, String val2, int operator){
 		String code = "";
 		switch (operator) {
 		case 1:
 			//> done
 			code = 	"\nfor_start_"+ forStartCount 
-					+ "\nbcf\tSTATUS,C"
-					+ "\nmovlw\td'"+ k 
-					+ "'\nsubwf\t" + i 
-					+ ",0\nbtfss\tSTATUS,Z\t"  
+					+ "\nbcf\tSTATUS,C";
+					
+			// is val2 the inc/dec value
+			if (val2.trim().matches("\\d+")){
+				code += "\nmovlw\td'"+ val2;
+			}else{
+				code += "\nmovf\t"+ val2 + ",0";
+			}
+			// is val1 the inc/dec value					
+			if (val1.trim().matches("\\d+")){
+				code += "\nsublw\td'"+ val1 +"'";
+			}else{
+				code += "'\nsubwf\t" + val1 + ",0";
+			}
+			code +=	"\nbtfss\tSTATUS,Z\t"  
 					+ "\nbtfss\tSTATUS,C"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";	
@@ -67,54 +78,107 @@ public class AsmTemplates extends magicFunctions{
 		case 2:
 			//>= done
 			code= 	"\nfor_start_"+ forStartCount
-					+ "\nbcf\tSTATUS,C"
-					+ "\nmovf\t"+ i 
-					+ ",0\nsublw\td'255'"
-					+ "\naddlw\td'" + k 
-					+ "'\nbtfsc\tSTATUS,C"
+					+ "\nbcf\tSTATUS,C";
+					
+			if (val1.trim().matches("\\d+")){
+				code += "\nmovlw\td'"+ val1 +"'";
+			}else{
+				code += "\nmovf\t"+ val1 + ",0";
+			}
+			code +=	"\nsublw\td'255'";
+					
+			if (val2.trim().matches("\\d+")){
+				code += "\naddlw\td'"+ val2 +"'";
+			}else{
+				code += "\naddwf\t"+ val2 + ",0";
+			}
+			code +=	"\nbtfsc\tSTATUS,C"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";			
+			
 			break;
 		case 3:
-			//< done
+			//< done - DONE 
 			code= 	"\nfor_start_"+ forStartCount
-					+"\nbcf\tSTATUS,C" 
-					+"\nmovlw\td'"+ k 
-					+ "\nsublw\td'255'\n"
-					+ "addlw\td'1'\n"
-					+ "addwf\t" + i + ",0"
+					+"\nbcf\tSTATUS,C"; 
+					
+			if (val2.trim().matches("\\d+")){
+				code += "\nmovlw\td'"+ val2 +"'";
+			}else{
+				code += "\nmovf\t"+ val2 + ",0";
+			}
+					
+			code +=	"\nsublw\td'255'\n"
+					+ "addlw\td'1'\n";
+			
+			if (val1.trim().matches("\\d+")){
+				code += "\naddlw\td'"+ val1 +"'";
+			}else{
+				code += "\naddwf\t"+ val1 + ",0";
+			}	
+			
+			code += "\nbtfss\tSTATUS,Z"
 					+ "\nbtfsc\tSTATUS,C"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";			
 			break;
 		case 4:
-			//<= done
-			code= 	"\nfor_start_"+ forStartCount 
-					+ "\nmovlw\td'"+ k 
-					+ "'\nsublw\td'255'"
-					+ "\nbcf\tSTATUS,C"
-					+ "\naddwf\t" + i + ",0"
-					+ "\nbtfsc\tSTATUS,C"
+			//<= 
+			code= 	"\nfor_start_"+ forStartCount;
+			
+			if (val2.trim().matches("\\d+")){
+				code += "\nmovlw\td'"+ val2 +"'";
+			}else{
+				code += "\nmovf\t"+ val2 + ",0";
+			}
+			code +=	"\nsublw\td'255'"
+					+ "\nbcf\tSTATUS,C";
+			
+			if (val1.trim().matches("\\d+")){
+				code += "\naddlw\td'"+ val1 +"'";
+			}else{
+				code += "\naddwf\t"+ val1 + ",0";
+			}	
+			code += "\nbtfsc\tSTATUS,C"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";			
 			break;
 		case 5:
-			//!= done
-			code= 	"\nfor_start_"+ forStartCount
-					+ "\nmovf\t"+ i 
-					+ ",0\nbcf\tSTATUS,C"
-					+ "\nsublw\td'" + k
-					+ "'\nbtfsc\tSTATUS,Z"
+			//!= 
+			code= 	"\nfor_start_"+ forStartCount;
+			
+			if (val1.trim().matches("\\d+")){
+				code += "\nmovlw\td'"+ val1 +"'";
+			}else{
+				code += "\nmovf\t"+ val1 + ",0";
+			}
+			code +="\nbcf\tSTATUS,C";
+					
+			if (val2.trim().matches("\\d+")){
+				code += "\nsublw\td'"+ val2 +"'";
+			}else{
+				code += "'\nsubwf\t" + val2 + ",0";
+			}
+			code += "\nbtfsc\tSTATUS,Z"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";				
 			break;
 		case 6:
-			//== done
-			code= 	"\nfor_start_"+ forStartCount
-					+ "\nmovf\t"+ i 
-					+ "\nbcf\tSTATUS,Z"
-					+ "\nsublw\td'" + k
-					+ "'\nbtfss\tSTATUS,Z"
+			//==
+			code= 	"\nfor_start_"+ forStartCount;
+			if (val1.trim().matches("\\d+")){
+				code += "\nmovlw\td'"+ val1 +"'";
+			}else{
+				code += "\nmovf\t"+ val1 + ",0";
+			}
+			code += "\nbcf\tSTATUS,Z";
+			
+			if (val2.trim().matches("\\d+")){
+				code += "\nsublw\td'"+ val2 +"'";
+			}else{
+						code += "'\nsubwf\t" + val2 + ",0";
+			}		
+			code += "\nbtfss\tSTATUS,Z"
 					+ "\ngoto\tfor_end_" + forStartCount++ 
 					+ "\n";			
 			break;
@@ -149,6 +213,75 @@ public class AsmTemplates extends magicFunctions{
 	public String writeIfStatement(String a, String b, int operator) {
 		
 		
-		return "Hello World a="+a +" b="+b ;
+//		switch (operator) {
+//		case 1:
+//			//> done
+//			code = 	"\nfor_start_"+ forStartCount 
+//					+ "\nbcf\tSTATUS,C"
+//					+ "\nmovlw\td'"+ k 
+//					+ "'\nsubwf\t" + i 
+//					+ ",0\nbtfss\tSTATUS,Z\t"  
+//					+ "\nbtfss\tSTATUS,C"
+//					+ "\ngoto\tfor_end_" + forStartCount++ 
+//					+ "\n";	
+//						
+//			break;
+//		case 2:
+//			//>= done
+//			code= 	"\nfor_start_"+ forStartCount
+//					+ "\nbcf\tSTATUS,C"
+//					+ "\nmovf\t"+ i 
+//					+ ",0\nsublw\td'255'"
+//					+ "\naddlw\td'" + k 
+//					+ "'\nbtfsc\tSTATUS,C"
+//					+ "\ngoto\tfor_end_" + forStartCount++ 
+//					+ "\n";			
+//			break;
+//		case 3:
+//			//< done
+//			code= 	"\nfor_start_"+ forStartCount
+//					+"\nbcf\tSTATUS,C" 
+//					+"\nmovlw\td'"+ k 
+//					+ "\nsublw\td'255'\n"
+//					+ "addlw\td'1'\n"
+//					+ "addwf\t" + i + ",0"
+//					+ "\nbtfsc\tSTATUS,C"
+//					+ "\ngoto\tfor_end_" + forStartCount++ 
+//					+ "\n";			
+//			break;
+//		case 4:
+//			//<= done
+//			code= 	"\nfor_start_"+ forStartCount 
+//					+ "\nmovlw\td'"+ k 
+//					+ "'\nsublw\td'255'"
+//					+ "\nbcf\tSTATUS,C"
+//					+ "\naddwf\t" + i + ",0"
+//					+ "\nbtfsc\tSTATUS,C"
+//					+ "\ngoto\tfor_end_" + forStartCount++ 
+//					+ "\n";			
+//			break;
+//		case 5:
+//			//!= done
+//			code= 	"\nfor_start_"+ forStartCount
+//					+ "\nmovf\t"+ i 
+//					+ ",0\nbcf\tSTATUS,C"
+//					+ "\nsublw\td'" + k
+//					+ "'\nbtfsc\tSTATUS,Z"
+//					+ "\ngoto\tfor_end_" + forStartCount++ 
+//					+ "\n";				
+//			break;
+//		case 6:
+//			//== done
+//			code= 	"\nfor_start_"+ forStartCount
+//					+ "\nmovf\t"+ i 
+//					+ "\nbcf\tSTATUS,Z"
+//					+ "\nsublw\td'" + k
+//					+ "'\nbtfss\tSTATUS,Z"
+//					+ "\ngoto\tfor_end_" + forStartCount++ 
+//					+ "\n";			
+//			break;
+//		}
+//		return code;	
+		return"";
 	}
 }
