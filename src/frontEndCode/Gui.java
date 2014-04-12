@@ -264,7 +264,7 @@ public class Gui extends JFrame {
 								}
 								
 								//identifier = 
-								int picMemorySpace = 126;
+								int picMemorySpace = 239;
 								identifiers0 = var_dict.keys();
 								while (identifiers0.hasMoreElements()){
 									String varName = identifiers0.nextElement().toString();
