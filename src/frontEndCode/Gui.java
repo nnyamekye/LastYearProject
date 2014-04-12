@@ -1,5 +1,6 @@
 package frontEndCode;
 
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -22,6 +23,7 @@ import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.LayoutStyle;
@@ -51,7 +53,7 @@ public class Gui extends JFrame {
 	JLabel lblAsm = new JLabel(Constants.ASM_full + " Code");
 	JFileChooser fc = new JFileChooser();
 	
-	int currentKeyHandler=0;
+	int currentKeyHandler= 0;
 	
 	boolean instate = false;
 	boolean initialise = true;
@@ -60,7 +62,7 @@ public class Gui extends JFrame {
 	
 	magicFunctions mf = new magicFunctions();
 	
-	Dictionary<String, String> intVar_dict = new Hashtable<String, String>();
+	Dictionary<String, String> var_dict = new Hashtable<String, String>();
 	Dictionary<String, String> forStatement_dict = new Hashtable<String, String>();
 	
 	File temporally_file;
@@ -129,10 +131,9 @@ public class Gui extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Enumeration<String> identifiers = intVar_dict.keys();
+				Enumeration<String> identifiers0 = var_dict.keys();
 				Deque<String> stack = new ArrayDeque<String>();
 
-				
 				AsmTemplates at = new AsmTemplates();
 			
 				int for_counter = 1;
@@ -141,9 +142,8 @@ public class Gui extends JFrame {
 				txtAreaAsm.setText("");	
 				sourceCode="";
 				
-				identifiers = intVar_dict.keys();
-					while (identifiers.hasMoreElements()){
-						intVar_dict.remove(identifiers.nextElement().toString());
+					while (identifiers0.hasMoreElements()){
+						var_dict.remove(identifiers0.nextElement().toString());
 					}
 					
 				String[] keywords = {"int","for","if"};
@@ -158,7 +158,7 @@ public class Gui extends JFrame {
 								matcher = pattern.matcher(strline);
 								
 								if(matcher.matches()){
-									strline = strline.replaceFirst("int\\s+main.*\\{", "<main<");
+									strline = strline.replaceFirst(".*\\s+main.*\\{", "<main<");
 									stack.push("main");
 								}
 								
@@ -219,8 +219,6 @@ public class Gui extends JFrame {
 										sourceCode = sourceCode.concat(strline+"\n");
 								}
 							}
-							
-							System.out.println(sourceCode);
 							break;
 					
 						case 2:
@@ -266,25 +264,35 @@ public class Gui extends JFrame {
 								}
 								
 								//identifier = 
-								int picMemorySpace = 32;
-								identifiers = intVar_dict.keys();
-								while (identifiers.hasMoreElements()){
+								int picMemorySpace = 126;
+								identifiers0 = var_dict.keys();
+								while (identifiers0.hasMoreElements()){
+									String varName = identifiers0.nextElement().toString();
 									
 									if (picMemorySpace < 496){
-										txtAreaAsm.append(identifiers.nextElement().toString() + "\tEQU\t0x" + Integer.toHexString(picMemorySpace++).toUpperCase()  +"\n");
-										if(picMemorySpace == 125)
-											picMemorySpace = 160;
-										if(picMemorySpace == 240)
-											picMemorySpace = 272;
-										if(picMemorySpace == 368)
-											picMemorySpace = 400;
+										if (picMemorySpace > 124 && picMemorySpace < 240){
+											if(picMemorySpace == 125)
+												picMemorySpace = 160;
+											at.storeVarInBAnk(varName, 1); 
+										}	
+										else if(picMemorySpace > 239 && picMemorySpace < 368){
+											if(picMemorySpace == 240)
+												picMemorySpace = 272;
+											at.storeVarInBAnk(varName, 2);
+										}
+										else if(picMemorySpace >= 368) {
+											if(picMemorySpace == 368)
+												picMemorySpace = 400;
+											at.storeVarInBAnk(varName, 3); 
+										}
+										else
+											at.storeVarInBAnk(varName, 0); 
+											txtAreaAsm.append(varName + "\tEQU\t0x" + Integer.toHexString(picMemorySpace++).toUpperCase()  +"\n");
 									}
 									else {
-										txtAreaAsm.append(identifiers.nextElement() + "\tEQU\t\t" + "; No space available for veriable declation \n");
+										txtAreaAsm.append(identifiers0.nextElement() + "\tEQU\t\t" + "; No space available for veriable declation \n");
 									}
-								
 								}
-								
 							}catch (IOException e1) {
 								// TODO Auto-generated catch block
 								e1.printStackTrace();
@@ -295,10 +303,10 @@ public class Gui extends JFrame {
 								for(String lines: at.getTemplate_B()){
 									txtAreaAsm.append(lines.trim()+"\n");
 								}
-							identifiers = intVar_dict.keys();
- 							while (identifiers.hasMoreElements()){
- 								String identifier = identifiers.nextElement();
- 								String value = intVar_dict.get(identifier);
+							identifiers0 = var_dict.keys();
+ 							while (identifiers0.hasMoreElements()){
+ 								String identifier = identifiers0.nextElement();
+ 								String value = var_dict.get(identifier);
  								
  								txtAreaAsm.append(at.intitialise_int(identifier, value));
 							}
@@ -312,20 +320,21 @@ public class Gui extends JFrame {
  										}else if(strLine.matches(".*}>for>\\d+>")){
  	 										String forNr = strLine.replaceAll(".*}", "");
  	 										forNr = forNr.replaceAll(">", "<");
- 	 										txtAreaAsm.append(mf.getEndStatement(forStatement_dict.get(forNr),forNr) + "\n");	
+ 	 										txtAreaAsm.append(mf.getEndForStatement(forStatement_dict.get(forNr),forNr) + "\n");	
  										}else if(strLine.matches(".*<if<\\d+<")){
- 											String forNr = strLine.replaceAll(".*\\{", ""); 
- 											txtAreaAsm.append(mf.getStatement(forNr));
- 										
+ 											String ifNr = strLine.replaceAll(".*\\{", ""); 
+ 											txtAreaAsm.append(mf.getStatement(ifNr));
  										}else if(strLine.matches(".*}>if>\\d+>")){
- 										//txtAreaAsm.append("ifStatementClose");
- 										}else {
+ 											txtAreaAsm.append(mf.getEndIStatement());
+ 										}
+ 										else {
  											strLine = strLine.trim();
- 											strLine = strLine.replaceAll("}>main>", "END");
+ 											strLine = strLine.replaceAll("}>main>", "");
 											txtAreaAsm.append("\t" + strLine+"\n\n");
 										}
  									}
  								}
+ 								txtAreaAsm.append("\t" + "END"+"\n\n");
  								
 							} catch (IOException e1) {
 								// TODO Auto-generated catch block
@@ -349,16 +358,16 @@ public class Gui extends JFrame {
 							String intVars [] = intStatement.split("=");
 							if(Integer.parseInt(intVars[1]) > 256)
 								intVars[1] = "255";
-							intVar_dict.put(intVars[0], intVars[1]);	
+							var_dict.put(intVars[0], intVars[1]);	
 					}
 					else{
 						if(intStatement.contains(",")){
 							String intVars [] = intStatement.split(",");
 							for(String var : intVars){
-								intVar_dict.put(var, "0");
+								var_dict.put(var, "0");
 							}
 						}else {
-							intVar_dict.put(intStatement.trim(), "0");
+							var_dict.put(intStatement.trim(), "0");
 						}
 					}
 					
@@ -403,89 +412,8 @@ public class Gui extends JFrame {
 					instate = false;
 				}
 			}
+			
 		});
-	
-		txtAreaC.addMouseListener(new MouseListener()  {
-			
-			@Override
-			public void mouseReleased(MouseEvent arg0) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mousePressed(MouseEvent arg0) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseExited(MouseEvent arg0) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseEntered(MouseEvent arg0) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseClicked(MouseEvent arg0) {
-		/*		if(!(txtAreaC.getText().isEmpty())){
-					dialogEdit.add(scrollPanelEdit);
-					scrollPanelEdit.setViewportView(txtAreaEdit);
-				
-					txtAreaEdit.setText("");
-					txtAreaEdit.setText(txtAreaC.getText());
-					dialogEdit.setSize(txtAreaEdit.getPreferredSize());
-				
-					dialogEdit.setVisible(true);
-				}*/
-			}
-		});	
-	
-		txtAreaAsm.addMouseListener(new MouseListener()  {
-		
-		@Override
-		public void mouseReleased(MouseEvent arg0) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-		@Override
-		public void mousePressed(MouseEvent arg0) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-		@Override
-		public void mouseExited(MouseEvent arg0) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-		@Override
-		public void mouseEntered(MouseEvent arg0) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-		@Override
-		public void mouseClicked(MouseEvent arg0) {
-			/*if(!(txtAreaAsm.getText().isEmpty())){
-				dialogEdit.add(scrollPanelEdit);
-				scrollPanelEdit.setViewportView(txtAreaEdit);
-			
-				txtAreaEdit.setText("");
-				txtAreaEdit.setText(txtAreaAsm.getText());
-				dialogEdit.setSize(txtAreaEdit.getPreferredSize());
-			
-				dialogEdit.setVisible(true);
-			}*/
-		}
-	});	
 
 		btnToAsm.addMouseListener(new MouseListener() {
 			
@@ -554,8 +482,6 @@ public class Gui extends JFrame {
 			
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
 				
 			}
 		});
@@ -743,5 +669,11 @@ public class Gui extends JFrame {
 	        pack();
 	        setVisible(true);
 	}
-
+	
+	void showError(String err) {
+		JOptionPane.showMessageDialog(new Frame(),
+			    err,
+			    "Exception Error",
+			    JOptionPane.ERROR_MESSAGE);
+	}
 }

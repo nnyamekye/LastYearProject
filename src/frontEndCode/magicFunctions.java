@@ -44,7 +44,6 @@ public class magicFunctions {
 	
 	void storeOperationType(String operationType, String condition){
 		conditionStatement_dict.put(operationType, condition);
-		
 	}
 	
 	String getStatement(String operationType, String Inc_dec){
@@ -102,9 +101,11 @@ public class magicFunctions {
 	return at.writeForStatement(a, b, operator);
 	}
 
-	String getEndStatement(String Inc_dec, String operation){
-		
-		return new AsmTemplates().endStatment(Inc_dec, conditions_dict.get(operation));
+	String getEndForStatement(String Inc_dec, String operation){
+		return new AsmTemplates().endforStatment(Inc_dec, conditions_dict.get(operation));
+	}
+	String getEndIStatement(){
+		return new AsmTemplates().endIfStatment();
 	}
 	
 	String getStatement(String operationType){
