@@ -162,6 +162,7 @@ public class Gui extends JFrame {
 									stack.push("main");
 								}
 								
+								
 								// For Statement
 								pattern = Pattern.compile("^\\s*for.*\\{.*");
 								matcher = pattern.matcher(strline);
@@ -247,10 +248,26 @@ public class Gui extends JFrame {
 												break;
 											case 2:
 												keyword_if(token);
-												//currentKeyHandler = 0;
 												break;
 										}
 									}
+								}
+								
+								// Variable
+								Enumeration<String> vars = var_dict.keys();
+								while(vars.hasMoreElements()){
+									
+									pattern = Pattern.compile(".*" + vars.nextElement() + ".*=.*;");
+									matcher = pattern.matcher(strline);
+									
+									if(matcher.matches()){
+										String[] variables = strline.split("\\s+");
+										for(String var : variables){
+											keyword_int(var);
+										}
+										sourceCode = sourceCode.replace(matcher.group(), "");
+									}
+									
 								}
 							}
 							sourceCode = sourceCode.replaceAll(".*\\*remove\\*[\n]", "");
@@ -264,7 +281,7 @@ public class Gui extends JFrame {
 								}
 								
 								//identifier = 
-								int picMemorySpace = 239;
+								int picMemorySpace = 32;
 								identifiers0 = var_dict.keys();
 								while (identifiers0.hasMoreElements()){
 									String varName = identifiers0.nextElement().toString();
