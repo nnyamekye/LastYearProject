@@ -62,7 +62,7 @@ public class Gui extends JFrame {
 	
 	magicFunctions mf = new magicFunctions();
 	
-	Dictionary<String, String> var_dict = new Hashtable<String, String>();
+	static Dictionary<String, String> var_dict = new Hashtable<String, String>();
 	Dictionary<String, String> forStatement_dict = new Hashtable<String, String>();
 	
 	File temporally_file;
@@ -129,108 +129,160 @@ public class Gui extends JFrame {
 		
 		btnToAsm.addActionListener(new ActionListener() {
 
+		//	@SuppressWarnings("static-access")
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				Enumeration<String> identifiers0 = var_dict.keys();
 				Deque<String> stack = new ArrayDeque<String>();
-
 				AsmTemplates at = new AsmTemplates();
-			
-				int for_counter = 1;
-				int if_counter = 1;
 				
+				int actual_forCount = 1;
+				int open_forCount = 0;
+				int nestedForIncrement=1;
+				int for_counter = 1;
+				int nestedFor_counter = 1;
+				
+				int actual_ifCount = 1; 
+				int open_IfCount = 0;
+				int nestedIfIncrement = 1; 
+				int if_counter = 1;
+				int ifNested_Count = 1;
+				
+				String[] keywords = {"int","for","if"};
+				String[] patterns_array = {
+						".*#include.*",				// #include
+						"^\\s*int.*\\;",			// int decleration
+						"\\s+",						// Whitespace
+						"^\\s*int\\s+main.*\\{.*", 	// main
+						"^\\s*for.*\\{.*",			// for
+						"^\\s*if.*\\{.*",			// if
+						"^\\s*.*\\}.*",				// }
+						"^\\s*return.*\\;",			// return
+						"\\s*[\\+{2}]*\\w+\\s*[\\+{2}]*;",
+						"\\s*[-{2}]*\\w+\\s*[-{2}]*;"
+				};
+
 				txtAreaAsm.setText("");	
 				sourceCode="";
 				
-					while (identifiers0.hasMoreElements()){
-						var_dict.remove(identifiers0.nextElement().toString());
-					}
-					
-				String[] keywords = {"int","for","if"};
+				while (identifiers0.hasMoreElements()){
+					var_dict.remove(identifiers0.nextElement().toString());
+				}
 				
 				for (int i = 1 ; i <= 3; i++){
 					switch(i){ 
 						case 1:
+							int index_count = 0;
+							
 							for (String strline : txtAreaC.getText().split("\\n+")){	
-
-								// main 
-								pattern = Pattern.compile("^\\s*int\\s+main.*\\{.*");
-								matcher = pattern.matcher(strline);
-								
-								if(matcher.matches()){
-									strline = strline.replaceFirst(".*\\s+main.*\\{", "<main<");
-									stack.push("main");
-								}
-								
-								
-								// For Statement
-								pattern = Pattern.compile("^\\s*for.*\\{.*");
-								matcher = pattern.matcher(strline);
-								
-								if(matcher.matches()){
-									strline = strline.replaceAll("^\\s*for.*\\{.*", matcher.group()+"<for<"+for_counter++  + "<");
-									stack.push("for");
-								}
-								// if Statement
-								pattern = Pattern.compile("^\\s*if.*\\{.*");
-								matcher = pattern.matcher(strline);
-								
-								if(matcher.matches()){
-									strline = strline.replaceAll("^\\s*if.*\\{.*", matcher.group()+"<if<"+if_counter++  + "<");
-									stack.push("if");
-								}
-								
-								// End bracket
-								pattern = Pattern.compile("^\\s*.*\\}.*");
-								matcher = pattern.matcher(strline);
-								
-								if(matcher.matches()){
-									
-									if (stack.peek().equals("for")){
-										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">for>"+ --for_counter + ">");
-									}else if(stack.peek().equals("if")){
-										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">if>"+ --if_counter + ">");
-									}else if(stack.peek().equals("main")) {
-										strline = strline.replaceAll("^\\s*.*\\}.*", matcher.group()+">main>");
-										for_counter = 1;
-										if_counter = 1;
+								boolean matchFound = false;
+								for (String regex_string : patterns_array){
+									pattern = Pattern.compile(regex_string);
+									matcher = pattern.matcher(strline);
+									if(!matchFound){
+										if(matcher.matches()){
+											switch(index_count){
+											case 0: // #include
+												sourceCode += strline.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 1: // int decleration
+												sourceCode += strline.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 2: // whitespace
+												sourceCode += strline.replaceAll(regex_string,"").trim();
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 3: // main
+												sourceCode += strline.replaceFirst(regex_string, "<main<").trim() +"\n";
+												stack.push("main");
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 4: // for
+												if(stack.contains("for")){
+													sourceCode += strline.replaceAll(regex_string, matcher.group()+"<nested_for<"+ nestedForIncrement++  + "<").trim()+"\n";
+													nestedFor_counter = nestedForIncrement;
+													open_forCount++;
+												}
+												else{
+													sourceCode += strline.replaceAll(regex_string, matcher.group()+"<for<"+ actual_forCount++  + "<").trim()+"\n";
+												 	for_counter = actual_forCount;
+												}
+												stack.push("for");
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 5: // if
+												sourceCode += strline.replaceAll(regex_string, matcher.group()+"<if<"+if_counter++  + "<").trim()+"\n";
+												stack.push("if");
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 6: // }
+												if (stack.peek().equals("for")){
+													if(open_forCount >= 1){
+														sourceCode += strline.replaceAll(regex_string, matcher.group()+">nested_for>"+ --nestedFor_counter + ">").trim()+"\n";
+														--open_forCount;
+													}
+													else{
+														sourceCode += strline.replaceAll(regex_string, matcher.group()+">for>"+ --for_counter + ">").trim()+"\n";
+													}
+												}else if(stack.peek().equals("if")){
+													sourceCode += strline.replaceAll(regex_string, matcher.group()+">if>"+ --if_counter + ">").trim()+"\n";
+												}else if(stack.peek().equals("main")) {
+													sourceCode += strline.replaceAll(regex_string, matcher.group()+">main>").trim()+"\n";
+													for_counter = 1;
+													if_counter = 1;
+												}
+												stack.poll();
+												matchFound = true;
+												index_count = 0;
+												break;
+												
+											case 7: // return
+												sourceCode += strline.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 8: // return
+												sourceCode += strline.replaceAll(regex_string, matcher.group()+"<increment>").trim()+"\n";
+												matchFound = true;
+												index_count = 0;
+												break;
+											case 9: // return
+												sourceCode += strline.replaceAll(regex_string, matcher.group()+"<decrement>").trim()+"\n";
+												matchFound = true;
+												index_count = 0;
+												break;
+													}
+										}else if(index_count == 9){
+											sourceCode += strline.trim() + "*unknown*\n";
+											index_count = 0;
+										}
+										else{
+											index_count++;
+										}
+									}else{
+										break;
 									}
-									stack.poll();
-								}
-								
-								// int Keyword
-								pattern = Pattern.compile("^\\s*int.*\\;");
-								matcher = pattern.matcher(strline);
-								
-								if(matcher.matches()){
-									strline = strline.replaceAll("^\\s*int.*\\;", matcher.group()+"*remove*");
-								}
-								
-								// return 
-								pattern = Pattern.compile("^\\s*return.*\\;");
-								matcher = pattern.matcher(strline);
-								
-								if(matcher.matches()){
-									strline = strline.replaceAll("^\\s*return.*\\;", matcher.group()+"*remove*");
-								}
-								
-								// #include 
-								if(!(strline.trim().isEmpty())){
-									if(!(strline.contains("#include")))
-										sourceCode = sourceCode.concat(strline+"\n");
 								}
 							}
 							break;
-					
 						case 2:
-							int count = 0;
 							for (String strline : sourceCode.split("\\n+")){
 								String[] tokens = strline.split("\\s+");
 								for(String token : tokens){ 
-									count = 0;
+									int count = 0;
 									for (String keyword : keywords) {
 										
-										if (token.equals(keyword)){
+										pattern = Pattern.compile(".*" + keyword + "\\(*");
+										matcher = pattern.matcher(token);
+										if (matcher.matches()){
 											instate = true;
 											currentKeyHandler = count;
 											break;
@@ -253,13 +305,14 @@ public class Gui extends JFrame {
 									}
 								}
 								
-								// Variable
 								Enumeration<String> vars = var_dict.keys();
 								while(vars.hasMoreElements()){
+								
+									String identifier = vars.nextElement();
 									
-									pattern = Pattern.compile(".*" + vars.nextElement() + ".*=.*;");
+									//Variable initialization 
+									pattern = Pattern.compile(".*" + identifier + ".*=.*;");
 									matcher = pattern.matcher(strline);
-									
 									if(matcher.matches()){
 										String[] variables = strline.split("\\s+");
 										for(String var : variables){
@@ -267,10 +320,11 @@ public class Gui extends JFrame {
 										}
 										sourceCode = sourceCode.replace(matcher.group(), "");
 									}
-									
 								}
 							}
 							sourceCode = sourceCode.replaceAll(".*\\*remove\\*[\n]", "");
+							sourceCode = sourceCode.replaceAll(".*<main<[\n]", "");
+							sourceCode = sourceCode.replaceAll(".*>main>[\n]", "");
 							break;
 							
 						case 3:
@@ -309,6 +363,7 @@ public class Gui extends JFrame {
 									else {
 										txtAreaAsm.append(identifiers0.nextElement() + "\tEQU\t\t" + "; No space available for veriable declation \n");
 									}
+									
 								}
 							}catch (IOException e1) {
 								// TODO Auto-generated catch block
@@ -327,28 +382,45 @@ public class Gui extends JFrame {
  								
  								txtAreaAsm.append(at.intitialise_int(identifier, value));
 							}
- 							
  							// MAIN function Scan and translation 
  								for(String strLine: sourceCode.split("[\n]")){
  									if(!(strLine.matches("<main<"))){
- 										if(strLine.matches(".*<for<\\d+<")){
+ 										if(strLine.matches(".*<for<\\d+<") || strLine.matches(".*<nested_for<\\d+<")){
  											String forNr = strLine.replaceAll(".*\\{", ""); 
  											txtAreaAsm.append(mf.getStatement(forNr,forStatement_dict.get(forNr)) + "\n");
- 										}else if(strLine.matches(".*}>for>\\d+>")){
+ 										}else if(strLine.matches(".*}>for>\\d+>") || strLine.matches(".*}>nested_for>\\d+>")){
  	 										String forNr = strLine.replaceAll(".*}", "");
  	 										forNr = forNr.replaceAll(">", "<");
- 	 										txtAreaAsm.append(mf.getEndForStatement(forStatement_dict.get(forNr),forNr) + "\n");	
+ 	 										txtAreaAsm.append(mf.getEndForStatement(forStatement_dict.get(forNr),forNr) + "\n");
  										}else if(strLine.matches(".*<if<\\d+<")){
  											String ifNr = strLine.replaceAll(".*\\{", ""); 
  											txtAreaAsm.append(mf.getStatement(ifNr));
  										}else if(strLine.matches(".*}>if>\\d+>")){
  											txtAreaAsm.append(mf.getEndIStatement());
  										}
- 										else {
- 											strLine = strLine.trim();
- 											strLine = strLine.replaceAll("}>main>", "");
-											txtAreaAsm.append("\t" + strLine+"\n\n");
+ 										else if(strLine.matches(".*\\<increment\\>") || strLine.matches(".*\\<decrement\\>")){
+ 											strLine = strLine.replaceAll("\\<increment\\>", "");
+ 											strLine = strLine.replaceAll("\\<decrement\\>", "");
+ 											strLine = strLine.replaceAll(";", "");
+ 											Enumeration<String> vars = var_dict.keys();
+ 											while(vars.hasMoreElements()){
+ 											
+ 												String identifier = vars.nextElement();
+ 												
+ 												if(strLine.matches("\\s*[\\+{2}]*" + identifier + "\\s*[\\+{2}]*")){
+ 													strLine = "";
+ 													txtAreaAsm.append(at.writeIncOperation(true,identifier));
+ 												}
+ 												else if(strLine.matches("\\s*[\\-{2}]*" + identifier + "\\s*[\\-{2}]*")){
+ 													strLine = "";
+ 													txtAreaAsm.append(at.writeIncOperation(true,identifier));
+ 												}
+ 											}
+ 										}
+ 										else if(strLine.matches(".*\\*unknown\\*")){
+											txtAreaAsm.append("nop\t;This C code couldn't be resloved \""+strLine+"\"");
 										}
+ 										
  									}
  								}
  								txtAreaAsm.append("\t" + "END"+"\n\n");
@@ -397,11 +469,12 @@ public class Gui extends JFrame {
 			private void keyword_for(String token) {
 				forStatement += token;
 				
-				if(token.matches(".*\\{<for<.+<")){
+				if(token.matches(".*\\{<for<.+<") || token.matches(".*\\{<nested_for<.+<")){
 					forStatement = forStatement.replaceAll("for\\(", "");
 					String forNr = forStatement.replaceAll(".*\\{","");
 					
 					forStatement = forStatement.replaceAll("\\).*<for<.*", "");
+					forStatement = forStatement.replaceAll("\\).*<nested_for<.*", "");
 					
 					String forCondition [] = forStatement.split(";");
 					keyword_int(forCondition[0].trim().concat(";"));

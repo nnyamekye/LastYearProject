@@ -87,7 +87,16 @@ public class magicFunctions {
 		}
 		a = elements[0]; 
 		b = elements[1];
-
+		
+//		if(elements[0].trim().matches("\\d+")){
+//			a = elements[1];
+//			b = elements[0];
+//		}
+//		else{
+//			a = elements[0];
+//			b = elements[1];
+//		}
+		
 		if(a.trim().matches("\\d+")){
 			if(Integer.parseInt(a.trim()) > 255)
 				a = "255";
@@ -96,13 +105,21 @@ public class magicFunctions {
 			if(Integer.parseInt(b.trim()) > 255)
 				b = "255";
 		}
-			
 		
-	return at.writeForStatement(a, b, operator);
+		String loopName;
+		loopName = operationType.replaceAll("<", "");
+		
+	return at.writeForStatement(a, b, operator, loopName);
 	}
 
 	String getEndForStatement(String Inc_dec, String operation){
-		return new AsmTemplates().endforStatment(Inc_dec, conditions_dict.get(operation));
+		int forNr = Integer.parseInt(operation.replaceAll("[^\\d]+",""));
+		if(operation.contains("nested")){
+			return new AsmTemplates().endforStatment(Inc_dec, operation, forNr, true);
+		}else{
+			return new AsmTemplates().endforStatment(Inc_dec, operation, forNr, false);
+		}
+		
 	}
 	String getEndIStatement(){
 		return new AsmTemplates().endIfStatment();
