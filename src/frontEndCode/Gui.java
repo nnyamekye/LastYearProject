@@ -639,27 +639,41 @@ public class Gui extends JFrame {
 		int status = fc.showSaveDialog(null);
 		
 		try	{
-			File new_file = null;
+			File file = fc.getSelectedFile();
+			System.out.println(file.getAbsolutePath());
 			if(!fc.getSelectedFile().getAbsoluteFile().toString().toLowerCase().endsWith("."+ fileType))
 			{
-			    new_file = new File(fc.getSelectedFile().getAbsoluteFile().toString() + "." + fileType);
+			    file = new File(fc.getSelectedFile().getAbsoluteFile().toString() + "." + fileType);
 			}
 			
 			if (status == JFileChooser.APPROVE_OPTION) {
-				OutputStream out = new FileOutputStream(new_file);
-				if (fileType.equals(Constants.C)){
-					out.write(txtAreaC.getText().getBytes());	
+				try{
+					if(file.exists()){
+						int response = JOptionPane.showConfirmDialog(new Frame(), "Would you like to overwrite the existing file", "Warning", JOptionPane.YES_NO_OPTION); 
+					
+						if(response == JOptionPane.YES_OPTION){
+							OutputStream out = new FileOutputStream(file);
+							if (fileType.equals(Constants.C)){
+								out.write(txtAreaC.getText().getBytes());
+								JOptionPane.showMessageDialog(new Frame(), file.getName()+" has been saved Successfully"
+										, "Message",JOptionPane.INFORMATION_MESSAGE);
+							}
+							else {
+								out.write(txtAreaAsm.getText().getBytes());
+							}
+							out.close();
+						}
+					}
+				}catch (Exception e) {
+					// TODO: handle exception
 				}
-				else {
-					out.write(txtAreaAsm.getText().getBytes());
-				}
-				out.close();
 				
 			} 
 				
 		}catch (Exception ex){//Catch exception if any
 			ex.printStackTrace();
 		}
+		fc.setFileFilter(null);
 	}
 
 	void initialise()
