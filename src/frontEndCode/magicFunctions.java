@@ -168,7 +168,51 @@ public class magicFunctions {
 	
 		return at.writeIfStatement(a, b, operator);
 	}
+	
+	String getAssignement(String assignement){
+		//TODO Multi assignement of nr
+		AsmTemplates at = new AsmTemplates();
 		
+		String identifier = "";
+		String value = "";
+		String str[] ={};
+		String code="";
+		
+		if(assignement.contains("=")){
+			str = assignement.split("=");
+		
+			value = str[1];
+			
+			if (str[0].contains(",")){
+				str = str[0].split(",");
+				code = "\nmovlw\td'"+ value +"'" ;
+				for (String ident : str){
+					code += "\nmovwf\t"+ ident;
+				}
+				
+				at.writeMultiAssignment(identifier);
+				return "\n"+code;
+			}
+			else{
+				identifier = str[0];
+			}
+			return at.writeAssignment(identifier,value);
+		}
+		else if(assignement.contains(",")){
+			
+			str = assignement.split(",");
+			for (String ident : str){
+				code += at.writeDecleration(ident);
+			}
+			return code;
+			
+		}else{
+			return at.writeDecleration(identifier);
+		}
+		
+		
+		
+	}
 }
 	
 	

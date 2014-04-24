@@ -3,8 +3,8 @@ package frontEndCode;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -52,28 +52,25 @@ public class Gui extends JFrame {
 	JLabel lblC = new JLabel("C Code"); 
 	JLabel lblAsm = new JLabel(Constants.ASM_full + " Code");
 	JFileChooser fc = new JFileChooser();
-	
-	int currentKeyHandler= 0;
-	
-	boolean instate = false;
-	boolean initialise = true;
-	
 	GroupLayout layout = new GroupLayout(getContentPane());
 	
 	magicFunctions mf = new magicFunctions();
-	
-	static Dictionary<String, String> var_dict = new Hashtable<String, String>();
 	Dictionary<String, String> forStatement_dict = new Hashtable<String, String>();
+	static Dictionary<String, String> var_dict = new Hashtable<String, String>();
 	
-	File temporally_file;
+	boolean instate;
 	
 	Pattern pattern;
 	Matcher matcher;
 	
-	String sourceCode = "";
-	String intStatement = "";
-	String forStatement = "";
-	String ifStatement = "";
+	String sourceCode;
+	String intStatement;
+	String forStatement;
+	String ifStatement;
+	
+	public static void main (String args[]){
+		new Gui(); 
+	}
 	
 	Gui()
 	{
@@ -98,7 +95,8 @@ public class Gui extends JFrame {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				txtAreaC.setText(null);
+				txtAreaC.setText("");
+				btnToAsm.setEnabled(false);
 			}
 		});
 		
@@ -106,7 +104,8 @@ public class Gui extends JFrame {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				txtAreaAsm.setText(null);
+				txtAreaAsm.setText("");
+				btnToC.setEnabled(false);
 			}
 		});
 		
@@ -129,13 +128,20 @@ public class Gui extends JFrame {
 		
 		btnToAsm.addActionListener(new ActionListener() {
 
-		//	@SuppressWarnings("static-access")
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Enumeration<String> identifiers0 = var_dict.keys();
+				Enumeration<String> identifiers = var_dict.keys();
 				Deque<String> stack = new ArrayDeque<String>();
 				AsmTemplates at = new AsmTemplates();
 				
+				instate = false;
+				
+				sourceCode = "";
+				intStatement = "";
+				forStatement = "";
+				ifStatement = "";
+				
+				int currentKeyHandler= 0;
 				int actual_forCount = 1;
 				int open_forCount = 0;
 				int nestedForIncrement=1;
@@ -152,21 +158,20 @@ public class Gui extends JFrame {
 				String[] patterns_array = {
 						".*#include.*",				// #include
 						"^\\s*int.*\\;",			// int decleration
-						"\\s+",						// Whitespace
+						"\\s+",					// Whitespace
 						"^\\s*int\\s+main.*\\{.*", 	// main
 						"^\\s*for.*\\{.*",			// for
 						"^\\s*if.*\\{.*",			// if
 						"^\\s*.*\\}.*",				// }
 						"^\\s*return.*\\;",			// return
-						"\\s*[\\+{2}]*\\w+\\s*[\\+{2}]*;",
-						"\\s*[-{2}]*\\w+\\s*[-{2}]*;"
+						"\\s*+\\+{2}\\w+;|\\s*\\w+\\+{2}\\s*;\\s*", // increment
+						"\\s*+\\-{2}\\w+;|\\s*\\w+\\-{2}\\s*;\\s*" // decrement
 				};
 
 				txtAreaAsm.setText("");	
-				sourceCode="";
 				
-				while (identifiers0.hasMoreElements()){
-					var_dict.remove(identifiers0.nextElement().toString());
+				while (identifiers.hasMoreElements()){
+					var_dict.remove(identifiers.nextElement().toString());
 				}
 				
 				for (int i = 1 ; i <= 3; i++){
@@ -174,43 +179,43 @@ public class Gui extends JFrame {
 						case 1:
 							int index_count = 0;
 							
-							for (String strline : txtAreaC.getText().split("\\n+")){	
+							for (String strLine : txtAreaC.getText().split("\\n+")){	
 								boolean matchFound = false;
 								for (String regex_string : patterns_array){
 									pattern = Pattern.compile(regex_string);
-									matcher = pattern.matcher(strline);
+									matcher = pattern.matcher(strLine);
 									if(!matchFound){
 										if(matcher.matches()){
 											switch(index_count){
 											case 0: // #include
-												sourceCode += strline.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
+												sourceCode += strLine.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
 												matchFound = true;
 												index_count = 0;
 												break;
 											case 1: // int decleration
-												sourceCode += strline.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
+												sourceCode += strLine.replaceAll(regex_string, matcher.group()+"<int>").trim()+"\n";
 												matchFound = true;
 												index_count = 0;
 												break;
 											case 2: // whitespace
-												sourceCode += strline.replaceAll(regex_string,"").trim();
+												sourceCode += strLine.replaceAll(regex_string,"").trim();
 												matchFound = true;
 												index_count = 0;
 												break;
 											case 3: // main
-												sourceCode += strline.replaceFirst(regex_string, "<main<").trim() +"\n";
+												sourceCode += strLine.replaceFirst(regex_string, "<main<").trim() +"\n";
 												stack.push("main");
 												matchFound = true;
 												index_count = 0;
 												break;
 											case 4: // for
 												if(stack.contains("for")){
-													sourceCode += strline.replaceAll(regex_string, matcher.group()+"<nested_for<"+ nestedForIncrement++  + "<").trim()+"\n";
+													sourceCode += strLine.replaceAll(regex_string, matcher.group()+"<nested_for<"+ nestedForIncrement++  + "<").trim()+"\n";
 													nestedFor_counter = nestedForIncrement;
 													open_forCount++;
 												}
 												else{
-													sourceCode += strline.replaceAll(regex_string, matcher.group()+"<for<"+ actual_forCount++  + "<").trim()+"\n";
+													sourceCode += strLine.replaceAll(regex_string, matcher.group()+"<for<"+ actual_forCount++  + "<").trim()+"\n";
 												 	for_counter = actual_forCount;
 												}
 												stack.push("for");
@@ -218,7 +223,7 @@ public class Gui extends JFrame {
 												index_count = 0;
 												break;
 											case 5: // if
-												sourceCode += strline.replaceAll(regex_string, matcher.group()+"<if<"+if_counter++  + "<").trim()+"\n";
+												sourceCode += strLine.replaceAll(regex_string, matcher.group()+"<if<"+if_counter++  + "<").trim()+"\n";
 												stack.push("if");
 												matchFound = true;
 												index_count = 0;
@@ -226,16 +231,16 @@ public class Gui extends JFrame {
 											case 6: // }
 												if (stack.peek().equals("for")){
 													if(open_forCount >= 1){
-														sourceCode += strline.replaceAll(regex_string, matcher.group()+">nested_for>"+ --nestedFor_counter + ">").trim()+"\n";
+														sourceCode += strLine.replaceAll(regex_string, matcher.group().trim()+">nested_for>"+ --nestedFor_counter + ">").trim()+"\n";
 														--open_forCount;
 													}
 													else{
-														sourceCode += strline.replaceAll(regex_string, matcher.group()+">for>"+ --for_counter + ">").trim()+"\n";
+														sourceCode += strLine.replaceAll(regex_string, matcher.group().trim()+">for>"+ --for_counter + ">").trim()+"\n";
 													}
 												}else if(stack.peek().equals("if")){
-													sourceCode += strline.replaceAll(regex_string, matcher.group()+">if>"+ --if_counter + ">").trim()+"\n";
+													sourceCode += strLine.replaceAll(regex_string, matcher.group().trim()+">if>"+ --if_counter + ">").trim()+"\n";
 												}else if(stack.peek().equals("main")) {
-													sourceCode += strline.replaceAll(regex_string, matcher.group()+">main>").trim()+"\n";
+													sourceCode += strLine.replaceAll(regex_string, matcher.group().trim()+">main>").trim()+"\n";
 													for_counter = 1;
 													if_counter = 1;
 												}
@@ -245,23 +250,23 @@ public class Gui extends JFrame {
 												break;
 												
 											case 7: // return
-												sourceCode += strline.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
+												sourceCode += strLine.replaceAll(regex_string, matcher.group()+"*remove*").trim()+"\n";
 												matchFound = true;
 												index_count = 0;
 												break;
 											case 8: // return
-												sourceCode += strline.replaceAll(regex_string, matcher.group()+"<increment>").trim()+"\n";
+												sourceCode += strLine.trim().replaceAll(regex_string, matcher.group()+"<increment>").trim()+"\n";
 												matchFound = true;
 												index_count = 0;
 												break;
 											case 9: // return
-												sourceCode += strline.replaceAll(regex_string, matcher.group()+"<decrement>").trim()+"\n";
+												sourceCode += strLine.trim().replaceAll(regex_string, matcher.group()+"<decrement>").trim()+"\n";
 												matchFound = true;
 												index_count = 0;
 												break;
 													}
 										}else if(index_count == 9){
-											sourceCode += strline.trim() + "*unknown*\n";
+											sourceCode += strLine.trim() + "*unknown*\n";
 											index_count = 0;
 										}
 										else{
@@ -304,23 +309,6 @@ public class Gui extends JFrame {
 										}
 									}
 								}
-								
-								Enumeration<String> vars = var_dict.keys();
-								while(vars.hasMoreElements()){
-								
-									String identifier = vars.nextElement();
-									
-									//Variable initialization 
-									pattern = Pattern.compile(".*" + identifier + ".*=.*;");
-									matcher = pattern.matcher(strline);
-									if(matcher.matches()){
-										String[] variables = strline.split("\\s+");
-										for(String var : variables){
-											keyword_int(var);
-										}
-										sourceCode = sourceCode.replace(matcher.group(), "");
-									}
-								}
 							}
 							sourceCode = sourceCode.replaceAll(".*\\*remove\\*[\n]", "");
 							sourceCode = sourceCode.replaceAll(".*<main<[\n]", "");
@@ -329,39 +317,42 @@ public class Gui extends JFrame {
 							
 						case 3:
 							try {
-								// Variables Declaration 
+								
 								for(String lines: at.getTemplate_A()){
 									txtAreaAsm.append(lines.trim()+"\n");
 								}
 								
-								//identifier = 
-								int picMemorySpace = 32;
-								identifiers0 = var_dict.keys();
-								while (identifiers0.hasMoreElements()){
-									String varName = identifiers0.nextElement().toString();
+								// Variables Declaration 
+								int picMemoryLocation = 32;
+								identifiers = var_dict.keys();
+								while (identifiers.hasMoreElements()){
+									String varName = identifiers.nextElement().toString();
 									
-									if (picMemorySpace < 496){
-										if (picMemorySpace > 124 && picMemorySpace < 240){
-											if(picMemorySpace == 125)
-												picMemorySpace = 160;
+									if (picMemoryLocation < 496){
+										if (picMemoryLocation > 124 && picMemoryLocation < 240){
+											if(picMemoryLocation == 125)
+												picMemoryLocation = 160;
 											at.storeVarInBAnk(varName, 1); 
 										}	
-										else if(picMemorySpace > 239 && picMemorySpace < 368){
-											if(picMemorySpace == 240)
-												picMemorySpace = 272;
+										else if(picMemoryLocation > 239 && picMemoryLocation < 368){
+											if(picMemoryLocation == 240)
+												picMemoryLocation = 272;
 											at.storeVarInBAnk(varName, 2);
 										}
-										else if(picMemorySpace >= 368) {
-											if(picMemorySpace == 368)
-												picMemorySpace = 400;
+										else if(picMemoryLocation >= 368) {
+											if(picMemoryLocation == 368)
+												picMemoryLocation = 400;
 											at.storeVarInBAnk(varName, 3); 
 										}
 										else
 											at.storeVarInBAnk(varName, 0); 
-											txtAreaAsm.append(varName + "\tEQU\t0x" + Integer.toHexString(picMemorySpace++).toUpperCase()  +"\n");
+											txtAreaAsm.append(varName + "\tEQU\t0x" + Integer.toHexString(picMemoryLocation++).toUpperCase()  +"\n");
 									}
 									else {
-										txtAreaAsm.append(identifiers0.nextElement() + "\tEQU\t\t" + "; No space available for veriable declation \n");
+										JOptionPane.showMessageDialog(new Frame(), "The PIC only provide 400 General Purpose"
+												+ "Registers!\n You have exeeded your limit by: " + (picMemoryLocation - 496)
+													, "Message",JOptionPane.ERROR_MESSAGE);
+										break;
 									}
 									
 								}
@@ -370,22 +361,20 @@ public class Gui extends JFrame {
 								e1.printStackTrace();
 							}	
 							
-							// Main Template And initialization of variables
+							// PArt B of Code
 							try {
 								for(String lines: at.getTemplate_B()){
 									txtAreaAsm.append(lines.trim()+"\n");
 								}
-							identifiers0 = var_dict.keys();
- 							while (identifiers0.hasMoreElements()){
- 								String identifier = identifiers0.nextElement();
- 								String value = var_dict.get(identifier);
- 								
- 								txtAreaAsm.append(at.intitialise_int(identifier, value));
-							}
- 							// MAIN function Scan and translation 
+
+							// MAIN function Scan and translation 
  								for(String strLine: sourceCode.split("[\n]")){
  									if(!(strLine.matches("<main<"))){
- 										if(strLine.matches(".*<for<\\d+<") || strLine.matches(".*<nested_for<\\d+<")){
+ 										if(strLine.trim().matches(".*<int>")){
+ 											strLine = strLine.replaceAll(";<int>", "").trim();
+ 											strLine = strLine.replaceAll("int", "").trim();
+ 											txtAreaAsm.append(mf.getAssignement(strLine));
+ 										}else if(strLine.matches(".*<for<\\d+<") || strLine.matches(".*<nested_for<\\d+<")){
  											String forNr = strLine.replaceAll(".*\\{", ""); 
  											txtAreaAsm.append(mf.getStatement(forNr,forStatement_dict.get(forNr)) + "\n");
  										}else if(strLine.matches(".*}>for>\\d+>") || strLine.matches(".*}>nested_for>\\d+>")){
@@ -403,6 +392,7 @@ public class Gui extends JFrame {
  											strLine = strLine.replaceAll("\\<decrement\\>", "");
  											strLine = strLine.replaceAll(";", "");
  											Enumeration<String> vars = var_dict.keys();
+ 											boolean match = false;
  											while(vars.hasMoreElements()){
  											
  												String identifier = vars.nextElement();
@@ -410,20 +400,45 @@ public class Gui extends JFrame {
  												if(strLine.matches("\\s*[\\+{2}]*" + identifier + "\\s*[\\+{2}]*")){
  													strLine = "";
  													txtAreaAsm.append(at.writeIncOperation(true,identifier));
+ 													match = true;
  												}
  												else if(strLine.matches("\\s*[\\-{2}]*" + identifier + "\\s*[\\-{2}]*")){
  													strLine = "";
- 													txtAreaAsm.append(at.writeIncOperation(true,identifier));
+ 													txtAreaAsm.append(at.writeIncOperation(false,identifier));
+ 													match = true;
  												}
  											}
- 										}
+ 											if(!match){
+ 												txtAreaAsm.append("\nnop\t; \" " + strLine + " \" veriable is not declared\n");
+ 												match = false;
+	 	 									}
+ 										}	
  										else if(strLine.matches(".*\\*unknown\\*")){
-											txtAreaAsm.append("nop\t;This C code couldn't be resloved \""+strLine+"\"");
+ 											boolean match = false;
+ 											Enumeration<String> vars = var_dict.keys();
+ 											strLine = strLine.replaceAll("\\*unknown\\*", "");
+ 											while(vars.hasMoreElements()){
+ 											
+ 												String identifier = vars.nextElement();
+ 												if (strLine.trim().matches(identifier + "\\s*=\\s*\\d+;")){
+ 													txtAreaAsm.append(mf.getAssignement(strLine.trim()));
+ 													match=true;
+ 												}else if(!strLine.trim().matches(identifier + "\\s*=\\s*\\D+;")) {
+ 													txtAreaAsm.append("\nnop\t; \" " + strLine + " \" veriable is not declared\n");
+ 													match=true;
+ 												}
+ 												if(match)
+ 													break;
+ 													
+ 											}
+ 											if(!match){
+ 												strLine=strLine.replaceAll("\\*unknown\\*","");
+ 												txtAreaAsm.append("nop\t; \" " + strLine + " \" couldn't be resloved\n");
+ 											}
 										}
- 										
  									}
  								}
- 								txtAreaAsm.append("\t" + "END"+"\n\n");
+ 								txtAreaAsm.append("\n\t" + "END"+"\n\n");
  								
 							} catch (IOException e1) {
 								// TODO Auto-generated catch block
@@ -434,30 +449,48 @@ public class Gui extends JFrame {
 					}
 				}
 
-			private void keyword_int(String token) {
+			public void keyword_int(String token) {
 				intStatement += token;				
 				
 				if(token.matches(".*\\;.*")){
 					
+					String value="";
+					String identifier="";
+					String intVars[] ={}; 
+							
 					intStatement = intStatement.replaceAll("int","");
-					intStatement = intStatement.replaceAll(";\\*remove\\*","");
+					intStatement = intStatement.replaceAll(";<>","");
 					intStatement = intStatement.replaceAll(";","");
 					
-					if (intStatement.contains("=")){
-							String intVars [] = intStatement.split("=");
-							if(Integer.parseInt(intVars[1]) > 256)
+					if(intStatement.contains(",")){
+						
+						if (intStatement.contains("=")){
+							intVars = intStatement.split("=");
+							if(Integer.parseInt(intVars[1]) > 256){
 								intVars[1] = "255";
-							var_dict.put(intVars[0], intVars[1]);	
-					}
-					else{
-						if(intStatement.contains(",")){
-							String intVars [] = intStatement.split(",");
+							}
+							value = intVars[1].trim();
+							
+							intVars = intVars[0].split(",");
+							for(String var : intVars){
+								var_dict.put(var, value);
+							}
+						}else {
+							intVars = intStatement.split(",");
 							for(String var : intVars){
 								var_dict.put(var, "0");
 							}
-						}else {
-							var_dict.put(intStatement.trim(), "0");
 						}
+					}
+					else if (intStatement.contains("=")){
+						intVars = intStatement.split("=");
+						if(Integer.parseInt(intVars[1]) > 256){
+							intVars[1] = "255";
+						}
+						var_dict.put(intVars[0], intVars[1]);	
+					}
+					else{
+						var_dict.put(intStatement, "0");							
 					}
 					
 					instate = false;
@@ -466,7 +499,7 @@ public class Gui extends JFrame {
 				
 			}
 			
-			private void keyword_for(String token) {
+			void keyword_for(String token) {
 				forStatement += token;
 				
 				if(token.matches(".*\\{<for<.+<") || token.matches(".*\\{<nested_for<.+<")){
@@ -488,7 +521,7 @@ public class Gui extends JFrame {
 				
 			}
 	
-			private void keyword_if(String token){
+			void keyword_if(String token){
 				ifStatement += token;
 				
 				if(token.matches(".*\\{<if<.+<")){
@@ -504,112 +537,70 @@ public class Gui extends JFrame {
 			}
 			
 		});
-
-		btnToAsm.addMouseListener(new MouseListener() {
+		
+		txtAreaAsm.addKeyListener(new KeyListener() {
 			
 			@Override
-			public void mouseReleased(MouseEvent e) {
-				// TODO Auto-generated method stub
+			public void keyTyped(KeyEvent arg0) {
 				
 			}
 			
 			@Override
-			public void mousePressed(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseExited(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				// TODO Auto-generated method stub
-				if (txtAreaC.getText().isEmpty())
-					btnToAsm.setEnabled(false);
-				else
-					btnToAsm.setEnabled(true);
-			}
-			
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-		});
-	
-		btnToC.addMouseListener(new MouseListener() {
-			
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mousePressed(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseExited(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				// TODO Auto-generated method stub
-				if (txtAreaAsm.getText().isEmpty())
+			public void keyReleased(KeyEvent arg0) {
+				if(txtAreaAsm.getText().matches("\\s*"))
 					btnToC.setEnabled(false);
-				else
+				else 
 					btnToC.setEnabled(true);
 			}
 			
 			@Override
-			public void mouseClicked(MouseEvent e) {
+			public void keyPressed(KeyEvent arg0) {
 				
 			}
 		});
+		
+		txtAreaC.addKeyListener(new KeyListener() {
+			
+			@Override
+			public void keyTyped(KeyEvent arg0) {
+			}
+			
+			@Override
+			public void keyReleased(KeyEvent arg0) {
+				if(txtAreaC.getText().matches("\\s*"))
+					btnToAsm.setEnabled(false);
+				else 
+					btnToAsm.setEnabled(true);
+			}
+			
+			@Override
+			public void keyPressed(KeyEvent arg0) {
+			}
+		});
+		
 	}
 
-	public static void main (String args[]){
-		new Gui(); 
-	}
-	
-	
 	private void openButtenEvent(String fileType) {
-		//TODO Clean up this method
+		//filter 
+		fc.resetChoosableFileFilters();
+		fc.setFileFilter(new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType));
 		
-		FileNameExtensionFilter filter = new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
-		fc.setFileFilter(filter);
 		//TODO For testing so remove after !!!//////////////////////////////////////////////
 		fc.setCurrentDirectory( new File("/Users/norisnyamekye/Desktop/Uni Project/test"));
 		////////////////////////////////////////////////////////////////////////////////////
-		fc.showOpenDialog(null);
+		int respond = fc.showOpenDialog(null);
 			
-		try {
+		
 				
-			if(!(fc.getSelectedFile()==null)){
-				if (fileType == Constants.C){
-					txtAreaC.setText("");
-					btnToC.setEnabled(false);
-					btnToAsm.setEnabled(true);
-					btnOpenAsm.setEnabled(false);
-				}
-				else{
-					txtAreaAsm.setText("");
-					btnToAsm.setEnabled(false);
-					btnToC.setEnabled(true);
-					btnOpenC.setEnabled(false);
-				}
-				
-				String[] strLines = mf.readFile(fc.getSelectedFile());
-				
+			if(respond == JFileChooser.APPROVE_OPTION){
+				try {
+					String[] strLines = mf.readFile(fc.getSelectedFile());
+					
+					if(fileType.equals(Constants.C))
+						txtAreaC.setText("");
+					else
+						txtAreaAsm.setText("");
+					
 				for(String strLine : strLines){
 
 					if(fileType.equals(Constants.C))
@@ -618,41 +609,48 @@ public class Gui extends JFrame {
 						txtAreaAsm.append(strLine + "\n");
 				}
 				
+				if(fileType.equals(Constants.C)){
+					if(txtAreaC.getText().matches("\\s*")){
+						btnToAsm.setEnabled(false);
+					}
+					else
+						btnToAsm.setEnabled(true);
+				}else{
+					if(txtAreaAsm.getText().matches("\\s*")){
+						btnToC.setEnabled(false);
+					}
+					else
+						btnToC.setEnabled(true);
+				}
+					
+				
+				}catch (Exception ex){//Catch exception if any
+					JOptionPane.showMessageDialog(new Frame(), fc.getSelectedFile().getName()+" couldn't be open!"
+							, "Message",JOptionPane.ERROR_MESSAGE);
+				}
 			}
 			
-		}catch (Exception ex){//Catch exception if any
-				ex.printStackTrace();
-		}
+		
 	}
 	
 	private void saveButtonEvent(String fileType){
-		// Improve // Replace a existen file and etc.
+		//TODO Improve code simiar to open & save shouldnt only be posible if file is openend or txtbox is not empmty is not that simple think
+		fc.resetChoosableFileFilters();
+		fc.setFileFilter(new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType));;
 			
-		FileNameExtensionFilter filter = new FileNameExtensionFilter(Constants.ASM_full  + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
-		FileNameExtensionFilter filter2 = new FileNameExtensionFilter(fileType.toUpperCase() + " Program - (*." + fileType + ")" , fileType, Constants.ASM);
-			
-		if(fileType.equals(Constants.ASM))
-			fc.setFileFilter(filter);
-		else{
-			fc.setFileFilter(filter2);
-		}
-		int status = fc.showSaveDialog(null);
+		int respond = fc.showSaveDialog(null);
 		
 		try	{
-			File file = fc.getSelectedFile();
-			System.out.println(file.getAbsolutePath());
-			if(!fc.getSelectedFile().getAbsoluteFile().toString().toLowerCase().endsWith("."+ fileType))
-			{
-			    file = new File(fc.getSelectedFile().getAbsoluteFile().toString() + "." + fileType);
-			}
 			
-			if (status == JFileChooser.APPROVE_OPTION) {
+			if (respond == JFileChooser.APPROVE_OPTION) {
+				OutputStream out = null;
+				File file = new File(fc.getSelectedFile().getAbsoluteFile().toString() + "." + fileType);
 				try{
 					if(file.exists()){
 						int response = JOptionPane.showConfirmDialog(new Frame(), "Would you like to overwrite the existing file", "Warning", JOptionPane.YES_NO_OPTION); 
-					
 						if(response == JOptionPane.YES_OPTION){
-							OutputStream out = new FileOutputStream(file);
+							out = new FileOutputStream(file);
+							
 							if (fileType.equals(Constants.C)){
 								out.write(txtAreaC.getText().getBytes());
 								JOptionPane.showMessageDialog(new Frame(), file.getName()+" has been saved Successfully"
@@ -660,10 +658,20 @@ public class Gui extends JFrame {
 							}
 							else {
 								out.write(txtAreaAsm.getText().getBytes());
+								JOptionPane.showMessageDialog(new Frame(), file.getName()+" has been saved Successfully"
+										, "Message",JOptionPane.INFORMATION_MESSAGE);
 							}
-							out.close();
+						}else{
+							JOptionPane.showMessageDialog(new Frame(), file.getName()+" wasn't saved"
+									, "Message",JOptionPane.INFORMATION_MESSAGE);
+							
 						}
+					}else {
+						file.createNewFile();
+						out = new FileOutputStream(file);
+						out.write(txtAreaC.getText().getBytes());
 					}
+					out.close();
 				}catch (Exception e) {
 					// TODO: handle exception
 				}
@@ -673,7 +681,6 @@ public class Gui extends JFrame {
 		}catch (Exception ex){//Catch exception if any
 			ex.printStackTrace();
 		}
-		fc.setFileFilter(null);
 	}
 
 	void initialise()
@@ -692,6 +699,9 @@ public class Gui extends JFrame {
 		txtAreaC.setColumns(20);
 		txtAreaC.setRows(5);
 		scrollPanelC.setViewportView(txtAreaC);
+		
+		btnToAsm.setEnabled(false);
+		btnToC.setEnabled(false);
 
 		// Component Positioning <-- This code was Generated by Netbeans GUI Drag & Drop -->
 		getContentPane().setLayout(layout);

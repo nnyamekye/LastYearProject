@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import org.omg.IOP.Codec;
+
 
 public class AsmTemplates extends magicFunctions{
 	
@@ -38,19 +40,19 @@ public class AsmTemplates extends magicFunctions{
 			switch(currentBank){
 			case 0:// Bank 0
 				returnStatement="\nbcf\tSTATUS,RP1"
-						+ "\nbcf\tSTATUS,RP0";
+						+ "\nbcf\tSTATUS,RP0\n";
 				break;
 			case 1:// Bank 1
 				returnStatement="\nbcf\tSTATUS,RP1"
-						+ "\nbsf\tSTATUS,RP0";
+						+ "\nbsf\tSTATUS,RP0\n";
 				break;
 			case 2:// Bank 2
 				returnStatement="\nbsf\tSTATUS,RP1"
-						+ "\nbcf\tSTATUS,RP0";
+						+ "\nbcf\tSTATUS,RP0\n";
 				break;
 			case 3:// Bank 3
 				returnStatement="\nbsf\tSTATUS,RP1"
-						+ "\nbsf\tSTATUS,RP0";
+						+ "\nbsf\tSTATUS,RP0\n";
 				break;
 			}
 		}
@@ -463,6 +465,27 @@ public class AsmTemplates extends magicFunctions{
 		}else{
 			code += "decf\t"+identifier+",1\n";
 		}
+		return code;
+	}
+
+	public String writeAssignment(String identifier, String value) {
+		String code = bankCheck(identifier); 
+		
+		code += "\nmovlw\td'"+value+
+				"'\nmovwf\t"+identifier+"\n";
+		return code;
+	}
+
+	public String writeMultiAssignment(String identifier) {
+		String code = bankCheck(identifier); 
+		code += "'\nmovwf\t"+identifier+"\n";
+		return code;
+		
+	}
+
+	public String writeDecleration(String identifier) {
+		String code = bankCheck(identifier);
+		code +=  "clrf\t"+ identifier+"\n";
 		return code;
 	}
 }
